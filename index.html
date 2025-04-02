@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Cube with Visible Edges</title>
+    <style>
+      :root {
+        --cube-size: 300px;
+        --cell-gap: 4px;
+        --cell-border: 4px solid #eee;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background-color: #eee;
+      }
+
+      .container {
+        perspective: 1000px;
+        margin: 6rem 0 8rem 0;
+      }
+
+      .cube {
+        position: relative;
+        width: var(--cube-size);
+        height: var(--cube-size);
+        transform-style: preserve-3d;
+        transform: rotateX(-30deg) rotateY(-30deg);
+      }
+
+      .face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--cell-gap);
+        padding: var(--cell-gap);
+        background: #ccc;
+        box-sizing: border-box;
+      }
+
+      .front {
+        transform: translateZ(calc(var(--cube-size) / 2));
+      }
+      .right {
+        transform: rotateY(90deg) translateZ(calc(var(--cube-size) / 2));
+      }
+      .top {
+        transform: rotateX(90deg) translateZ(calc(var(--cube-size) / 2));
+      }
+
+      .cell {
+        background: transparent;
+        border: var(--cell-border);
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: relative;
+      }
+
+      .edge-highlight {
+        position: absolute;
+        width: calc(100% + 8px);
+        height: calc(100% + 8px);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        pointer-events: none;
+        box-sizing: border-box;
+      }
+
+      .back .cell,
+      .left .cell,
+      .bottom .cell {
+        opacity: 0.3;
+        transition: opacity 0.3s;
+      }
+
+      .back .cell:hover,
+      .left .cell:hover,
+      .bottom .cell:hover {
+        opacity: 0.8;
+      }
+
+      .text-input-container {
+        width: var(--cube-size);
+        margin: 2rem 0;
+        padding: 1rem;
+      }
+
+      .text-input {
+        width: 150%;
+        margin-left: -25%;
+        min-height: 50px;
+        padding: 12px;
+        border: 0px;
+        border-radius: 6px;
+        resize: vertical;
+        font-family: "Courier New", monospace;
+        font-size: 36px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-y: auto;
+        outline: none;
+        border-radius: 0px;
+        background-color: transparent;
+      }
+
+      textarea:focus {
+        outline: none;
+        box-shadow: none;
+        background-color: transparent;
+      }
+
+      .color-picker-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        margin: 2rem 0 0 0;
+      }
+
+      .color-picker {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+        border: 2px solid transparent;
+      }
+
+      .color-picker.active {
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      #white {
+        border: 2px solid #ccc;
+      }
+
+      @media (max-width: 600px) {
+        :root {
+          --cube-size: 200px;
+        }
+
+        .text-input-container {
+          margin: 0;
+        }
+        .text-input {
+          font-size: 24px;
+        }
+        .color-picker-container {
+          margin: 0;
+        }
+        .container {
+          perspective: 500px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="cube">
+        <div class="face front">
+          <div class="edge-highlight" style="top: -4px; left: -4px"></div>
+        </div>
+        <div class="face right">
+          <div class="edge-highlight" style="top: -4px; right: -4px"></div>
+        </div>
+        <div class="face top">
+          <div class="edge-highlight" style="top: -4px; left: -4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-input-container">
+      <textarea
+        class="text-input"
+        placeholder="algorithm..."
+        spellcheck="false"
+      ></textarea>
+    </div>
+    <div class="color-picker-container">
+      <div class="color-picker active" data-color="#249b37"></div>
+      <div class="color-picker" data-color="#eb7a3e"></div>
+      <div class="color-picker" data-color="#456ca5"></div>
+      <div class="color-picker" data-color="#be4345"></div>
+      <div class="color-picker" data-color="#d7c519"></div>
+      <div class="color-picker" id="white" data-color="#fff"></div>
+      <div class="color-picker" data-color="#ccc"></div>
+      <div class="color-picker" data-color="#111"></div>
+    </div>
+
+    <script>
+      document.querySelectorAll(".text-input").forEach((element) => {
+        element.style.height = "auto";
+        element.style.height = element.scrollHeight + "px";
+
+        element.addEventListener("input", function () {
+          this.style.height = "auto";
+          this.style.height = this.scrollHeight + "px";
+        });
+      });
+      const initCells = () => {
+        const faces = document.querySelectorAll(".face");
+        faces.forEach((face) => {
+          for (let i = 0; i < 9; i++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            face.appendChild(cell);
+          }
+        });
+      };
+
+      let selectedColor = "#249b37";
+      const colorPickers = document.querySelectorAll(".color-picker");
+
+      colorPickers.forEach((picker) => {
+        picker.style.backgroundColor = picker.dataset.color;
+
+        picker.addEventListener("click", () => {
+          selectedColor = picker.dataset.color;
+          colorPickers.forEach((p) => p.classList.remove("active"));
+          picker.classList.add("active");
+        });
+      });
+
+      document.querySelector(".cube").addEventListener("click", (e) => {
+        if (e.target.classList.contains("cell")) {
+          e.target.style.backgroundColor = selectedColor;
+        }
+
+        if (e.target.classList.contains("edge-highlight")) {
+          const x = e.clientX;
+          const y = e.clientY;
+          const element = document.elementFromPoint(x, y);
+
+          if (element && element.classList.contains("cell")) {
+            element.style.backgroundColor = selectedColor;
+          }
+        }
+      });
+
+      initCells();
+    </script>
+  </body>
+</html>
